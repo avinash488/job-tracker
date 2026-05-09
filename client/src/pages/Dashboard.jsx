@@ -3,6 +3,7 @@ import axios from 'axios';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import toast, { Toaster } from 'react-hot-toast';
+import { LayoutGrid, Table, Plus } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import AddApplicationModal from '../components/AddApplicationModal';
 import ApplicationTable from '../components/ApplicationTable';
@@ -10,12 +11,20 @@ import KanbanBoard from '../components/KanbanBoard';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const statusColors = {
+  Applied: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+  Interview: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
+  Offer: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
+  Rejected: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+  Ghosted: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [view, setView] = useState('kanban'); // 'kanban' or 'table'
+  const [view, setView] = useState('kanban');
 
   const getToken = async () => {
     const { data } = await supabase.auth.getSession();
@@ -38,8 +47,6 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchApplications();
-
-    // Browser notification for follow-ups due today
     const today = new Date().toISOString().split('T')[0];
     const due = applications.filter(a => a.follow_up_date === today);
     if (due.length > 0 && Notification.permission === 'granted') {
@@ -90,37 +97,53 @@ const Dashboard = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       <Toaster />
       <Navbar />
 
-      <div style={{ padding: '2rem' }}>
+      <div className="max-w-screen-xl mx-auto px-6 py-8">
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-8">
+          {Object.entries(statusColors).map(([status, color]) => (
+            <div key={status} className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{status}</p>
+              <p className="text-2xl font-bold text-gray-800 dark:text-white">
+                {applications.filter(a => a.status === status).length}
+              </p>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${color}`}>{status}</span>
+            </div>
+          ))}
+        </div>
+
         {/* Header Row */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h3 style={{ margin: 0 }}>My Applications ({applications.length})</h3>
-          <div style={{ display: 'flex', gap: '1rem' }}>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+            All Applications
+            <span className="ml-2 text-sm font-normal text-gray-400">({applications.length})</span>
+          </h2>
+
+          <div className="flex items-center gap-3">
             {/* View Toggle */}
-            <div style={{ display: 'flex', backgroundColor: '#ddd', borderRadius: '6px', overflow: 'hidden' }}>
+            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
               <button
                 onClick={() => setView('kanban')}
-                style={{
-                  padding: '0.5rem 1rem',
-                  border: 'none',
-                  cursor: 'pointer',
-                  backgroundColor: view === 'kanban' ? '#1e1e2e' : 'transparent',
-                  color: view === 'kanban' ? 'white' : 'black'
-                }}>
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  view === 'kanban'
+                    ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}>
+                <LayoutGrid size={15} />
                 Kanban
               </button>
               <button
                 onClick={() => setView('table')}
-                style={{
-                  padding: '0.5rem 1rem',
-                  border: 'none',
-                  cursor: 'pointer',
-                  backgroundColor: view === 'table' ? '#1e1e2e' : 'transparent',
-                  color: view === 'table' ? 'white' : 'black'
-                }}>
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  view === 'table'
+                    ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}>
+                <Table size={15} />
                 Table
               </button>
             </div>
@@ -128,23 +151,18 @@ const Dashboard = () => {
             {/* Add Button */}
             <button
               onClick={() => setShowModal(true)}
-              style={{
-                padding: '0.5rem 1.5rem',
-                backgroundColor: '#2ecc71',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}>
-              + Add Application
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
+              <Plus size={16} />
+              Add Application
             </button>
           </div>
         </div>
 
         {/* View */}
         {loading ? (
-          <p style={{ textAlign: 'center' }}>Loading...</p>
+          <div className="flex justify-center items-center h-64">
+            <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
         ) : view === 'kanban' ? (
           <KanbanBoard
             applications={applications}
@@ -160,7 +178,6 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Modal */}
       {showModal && (
         <AddApplicationModal
           onClose={() => setShowModal(false)}
